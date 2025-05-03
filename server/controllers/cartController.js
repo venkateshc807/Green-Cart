@@ -1,23 +1,35 @@
 import User from "../models/userModel.js"
 
-
-//Update user cartData : /api/cart/update
+// Update user cart data: POST /api/cart/update
 export const updateCart = async (req, res) => {
     try {
-        const { cartItems } = req.body;
-        const userId = req.userId; // ✅ Get from middleware
+        const { cartItems } = req.body
+        const userId = req.userId // ✅ From middleware
 
         if (!userId) {
-            return res.status(400).json({ success: false, message: "User ID not found in request" });
+            return res.status(400).json({ success: false, message: "User ID not found in request" })
         }
 
-        await User.findByIdAndUpdate(userId, { cartItems });
+        if (!cartItems || typeof cartItems !== 'object') {
+            return res.status(400).json({ success: false, message: "Invalid cart items format" })
+        }
 
-        res.json({ success: true, message: "Cart updated" });
+        const updatedUser = await User.findByIdAndUpdate(
+            userId,
+            { cartItems },
+            { new: true }
+        )
+
+        if (!updatedUser) {
+            return res.status(404).json({ success: false, message: "User not found" })
+        }
+
+        res.status(200).json({ success: true, message: "Cart updated", cartItems: updatedUser.cartItems })
+
     } catch (error) {
-        console.log("updateCart error:", error.message);
-        res.status(500).json({ success: false, message: error.message });
+        console.error("updateCart error:", error.message)
+        res.status(500).json({ success: false, message: "Internal server error: " + error.message })
     }
-};
+}
 
   

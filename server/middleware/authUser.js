@@ -1,27 +1,26 @@
 import jwt from "jsonwebtoken"
 
-
 const authUser = async (req, res, next) => {
-    const { token } = req.cookies;
-
-    if (!token) {
-        return res.json({ success: false, message: "Not Authorized" });
-    }
-
     try {
-        const tokenDecode = jwt.verify(token, process.env.JWT_SECRET_KEY);
+        const { token } = req.cookies
 
-        if (tokenDecode.id) {
-            req.userId = tokenDecode.id; // ✅ Use req.userId instead of req.body.userId
-            next();
-        } else {
-            return res.json({ success: false, message: "Not Authorized" });
+        if (!token) {
+            return res.status(401).json({ success: false, message: "Not authorized: Token missing" })
         }
 
-    } catch (error) {
-        return res.json({ success: false, message: error.message });
-    }
-};
+        const decoded = jwt.verify(token, process.env.JWT_SECRET_KEY)
 
+        if (!decoded?.id) {
+            return res.status(401).json({ success: false, message: "Not authorized: Invalid token" })
+        }
+
+        req.userId = decoded.id
+        next()
+
+    } catch (error) {
+        console.error("Auth error:", error.message)
+        return res.status(401).json({ success: false, message: "Authentication failed: " + error.message })
+    }
+}
 
 export default authUser
